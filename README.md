@@ -30,7 +30,7 @@ The library requires following permissions in order to function properly:
 * `android.permission.BLUETOOTH_ADMIN` - required to check if Bluetooth is turned on
 
 ###Android Studio/Gradle
-* Download latest binary version [AAR file](htt://link.to.aar) 
+* Download latest binary version [AAR file](https://github.com/upnext/blekit-android/releases/download/v0.5.0/AndroidBLEKitLibrary-0.5.0.aar)
 * Create a /libs directory inside your project and copy the AAR file there.
 * Edit your build.gradle file, and add a "flatDir" entry to your repositories:
 
