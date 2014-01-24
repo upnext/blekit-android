@@ -1,0 +1,9 @@
+<resources>
+    <string name="loading">Talking to Foursquare servers</string>
+
+    <string name="blekit_exit">Exit</string>
+    <string name="blekit_turn_bt_on">Turn Bluetooth on</string>
+    <string name="blekit_ble_unsupported">Bluetooth LE is not supported by this device</string>
+    <string name="blekit_bt_not_on">Turn Bluetooth on and restart the application</string>
+
+</resources>
