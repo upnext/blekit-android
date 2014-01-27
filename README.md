@@ -1,17 +1,17 @@
 # Android BLEKit Library
 
-An Android library for BLEKit developers to ease the interaction with Beacons.
+An Android library for BLEKit developers to ease interaction with Beacons.
 
 ---
 ## What does this library do?
 
 It allows pre-configured interaction with Beacons. 
 
-Configuration is provided in JSON file format (described later on) - either directly or as a link to an existing JSON on the web.
+Configuration is provided in JSON file format (described later in this document) - either directly or as a link to an existing JSON on the web.
 
-Basic objects present in cofiguration are:
+The basic objects presented in the cofiguration are:
 
-* BLEAction - represents an action to be executed, eg. show a Dialog with given message or perform a check-in to Facebook
+* BLEAction - represents an action to be executed, eg. show a Dialog with a given message, or perform a check-in to Facebook
 
 * BLECondition - represents a condition that has to be met in order for the BLEAction to be executed, eg. 'enter' (beacon has appeared), 'cameImmediate' (beacon became very close to the device)
 
@@ -20,17 +20,17 @@ It is possible to write your own custom BLEActions and BLEConditions and provide
 
 ##How to use this library
 
-The easiest and most desirable way is to use the bianry version (as a AAR library) and put in your project.
+The easiest and preferable method is to use the binary version (as an AAR library) and place this in your project.
 
 ###Permissions required by library
-The library requires following permissions in order to function properly:
+The library requires the following permissions in order to function properly:
 
-* `android.permission.INTERNET` - required to fetch configuration from given URL
+* `android.permission.INTERNET` - required to fetch configuration from a given URL
 * `android.permission.BLUETOOTH` - required to perfom Bluetooth LE scans
 * `android.permission.BLUETOOTH_ADMIN` - required to check if Bluetooth is turned on
 
 ###Android Studio/Gradle
-* Download latest binary version [AAR file](https://github.com/upnext/blekit-android/releases/download/v0.5.0/AndroidBLEKitLibrary-0.5.0.aar)
+* Download the latest binary version [AAR file](htt://link.to.aar) 
 * Create a /libs directory inside your project and copy the AAR file there.
 * Edit your build.gradle file, and add a "flatDir" entry to your repositories:
 
@@ -51,7 +51,9 @@ dependencies {
 ```
 
 
-##Setup - basic
+##Usage
+
+###Basic setup
 * Initiate object
 
 ````
@@ -73,8 +75,8 @@ BLEKit.create(context)
 ````
 
 
-##Setup - advanced
-Below is a more advanced example using extra features provided by the library.
+###Advanced Setup
+The following is a more advanced example that makes use of extra features provided by the library.
 
 ````
 BLEKit.create(this)
@@ -97,13 +99,13 @@ BLEKit.create(this)
 This library is dependant on [Radius Networks's Android IBeacon Library](https://github.com/RadiusNetworks/android-ibeacon-service	).
 
 ## Problems
-Describle problems with Android BLE RSSI.
+Describe problems with Android BLE RSSI.
 
 ##License 
 
 This software is available under the MIT license, allowing you to use the library in your applications.
 
-If you want to help with the open source project, contact blekit@up-next.com
+If you would like to contribute to the open source project, contact blekit@up-next.com
 
 *Copyright (c) 2014 UP-NEXT. All rights reserved.
 http://www.up-next.com*
