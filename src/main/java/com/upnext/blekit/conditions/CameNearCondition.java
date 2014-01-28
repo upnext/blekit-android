@@ -62,10 +62,10 @@ public class CameNearCondition extends BLECondition<Void> {
     }
 
     /**
-     * Returns <code>true</code> only if beaocn event equals {@link com.upnext.blekit.BeaconEvent#CAME_NEAR}
+     * Returns <code>true</code> only if beacon event equals {@link com.upnext.blekit.BeaconEvent#CAME_NEAR}
      *
      * @param beaconEvent event
-     * @return <code>true</code> only if beaocn event equals {@link com.upnext.blekit.BeaconEvent#CAME_NEAR}
+     * @return <code>true</code> only if beacon event equals {@link com.upnext.blekit.BeaconEvent#CAME_NEAR}
      */
     @Override
     public boolean isValidForEvent(BeaconEvent beaconEvent) {

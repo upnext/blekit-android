@@ -26,6 +26,7 @@
 package com.upnext.blekit.conditions;
 
 import com.upnext.blekit.BeaconEvent;
+import com.upnext.blekit.util.L;
 
 /**
  * Condition checking whether an {@link com.upnext.blekit.BeaconEvent#REGION_ENTER} has just been received.
@@ -61,10 +62,10 @@ public class EnterCondition extends OccurenceCondition {
     }
 
     /**
-     * Returns <code>true</code> only if beaocn event equals {@link com.upnext.blekit.BeaconEvent#REGION_ENTER}
+     * Returns <code>true</code> only if beacon event equals {@link com.upnext.blekit.BeaconEvent#REGION_ENTER}
      *
      * @param beaconEvent event
-     * @return <code>true</code> only if beaocn event equals {@link com.upnext.blekit.BeaconEvent#REGION_ENTER}
+     * @return <code>true</code> only if beacon event equals {@link com.upnext.blekit.BeaconEvent#REGION_ENTER}
      */
     @Override
     public boolean isValidForEvent(BeaconEvent beaconEvent) {

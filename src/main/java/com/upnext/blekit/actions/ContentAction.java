@@ -67,7 +67,7 @@ public class ContentAction extends BLEAction<ContentActionParams> {
      * @param context Android Context, passed from the calling entity
      */
     @Override
-    public void perfromInBackground(Context context) {
+    public void performInBackground(Context context) {
         displayNotification( context, parameters.notification_title, parameters.notification_message, TYPE, R.drawable.ic_notification, NOTIFICATION_ID );
     }
 

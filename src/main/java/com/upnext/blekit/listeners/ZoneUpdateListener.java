@@ -37,7 +37,7 @@ import com.upnext.blekit.model.Zone;
 public interface ZoneUpdateListener {
 
     /**
-     * Called right after a new configuration has been loaded (after BLEKit start or after manual call to {@link com.upnext.blekit.BLEKit#reloadJson()})
+     * Called immediately after a new configuration has been loaded (after BLEKit start or after manual call to {@link com.upnext.blekit.BLEKit#reloadJson()})
      *
      * @param zone the zone configuration that has just been loaded
      */

@@ -54,7 +54,7 @@ public abstract class OccurenceCondition extends BLECondition<OccurenceParams> {
      */
     @Override
     protected boolean evaluate() {
-        if( parameters!=null ) {
+        if( parameters!=null && parameters.occurence!=null ) {
             if( parameters.occurence_unit==null ) {
                 parameters.occurence_unit = EventOccurenceUnit.TOTAL;
             }

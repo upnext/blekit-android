@@ -44,7 +44,7 @@ import java.util.Map;
  * {@link com.upnext.blekit.BeaconEvent#REGION_LEAVE} has passed without any {@link com.upnext.blekit.BeaconEvent#REGION_LEAVE} in the meantime
  * (so the user stayed in the proximity of the beacon for the given amount of time).
  *
- * Upon first evaluation a countdown timer is fired and when it gets to 0, the action is performed.
+ * Upon first evaluation a countdown timer is fired. When it reaches 0, the action is performed.
  *
  * @author Roman Wozniak (roman@up-next.com)
  */

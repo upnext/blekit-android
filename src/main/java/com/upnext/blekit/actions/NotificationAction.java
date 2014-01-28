@@ -109,7 +109,7 @@ public class NotificationAction extends BLEAction<NotificationActionParams> {
      * @param context Android Context, passed from the calling entity
      */
     @Override
-    public void perfromInBackground(Context context) {
+    public void performInBackground(Context context) {
         sendBroadcast(context);
     }
 

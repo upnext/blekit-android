@@ -61,10 +61,10 @@ public class CameImmediateCondition extends BLECondition<Void> {
     }
 
     /**
-     * Returns <code>true</code> only if beaocn event equals {@link com.upnext.blekit.BeaconEvent#CAME_IMMEDIATE}
+     * Returns <code>true</code> only if beacon event equals {@link com.upnext.blekit.BeaconEvent#CAME_IMMEDIATE}
      *
      * @param beaconEvent event
-     * @return <code>true</code> only if beaocn event equals {@link com.upnext.blekit.BeaconEvent#CAME_IMMEDIATE}
+     * @return <code>true</code> only if beacon event equals {@link com.upnext.blekit.BeaconEvent#CAME_IMMEDIATE}
      */
     @Override
     public boolean isValidForEvent(BeaconEvent beaconEvent) {

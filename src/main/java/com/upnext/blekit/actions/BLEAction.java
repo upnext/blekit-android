@@ -38,8 +38,6 @@ import com.upnext.blekit.BackgroundMode;
 import com.upnext.blekit.util.JsonParser;
 import com.upnext.blekit.util.L;
 
-import org.json.JSONObject;
-
 /**
  * Base abstract class for custom BLEKit actions.
  *
@@ -60,7 +58,7 @@ public abstract class BLEAction<T> {
     public abstract String getType();
 
     /**
-     * Sets parametrs for this action.
+     * Sets parameters for this action.
      *
      * @param parameters parameters instance
      */
@@ -85,7 +83,7 @@ public abstract class BLEAction<T> {
      *
      * @param context Android Context, passed from the calling entity
      */
-    public abstract void perfromInBackground(Context context);
+    public abstract void performInBackground(Context context);
 
     /**
      * If BLEKit service is in foreground (@see {@link com.upnext.blekit.BLEKit#setBackgroundMode(boolean, android.app.Activity)}),
@@ -115,7 +113,7 @@ public abstract class BLEAction<T> {
 
         if( backgroundMode.inBackground || backgroundMode.activity==null || backgroundMode.activity.isDestroyed() || backgroundMode.activity.isFinishing() ) {
 
-            perfromInBackground( context );
+            performInBackground(context);
 
         } else {
 
@@ -125,7 +123,7 @@ public abstract class BLEAction<T> {
                 L.d("No longer in foreground, performing action in background");
                 // happens when a fragment cannot be displayed "java.lang.IllegalStateException: Can not perform this action after onSaveInstanceState"
                 // so as a fallback we perform the action in background
-                perfromInBackground(context);
+                performInBackground(context);
             }
 
         }
@@ -138,7 +136,7 @@ public abstract class BLEAction<T> {
      * @param parameterClass instance of this class will be created and filled with data from parameters
      * @return deserialized obect instance
      */
-    public static <T>T getPrametersFromJson( JsonNode parameters, Class parameterClass ) {
+    public static <T>T getParametersFromJson(JsonNode parameters, Class parameterClass) {
         JsonParser jsonParser = new JsonParser();
         return (T) jsonParser.parse( parameters, parameterClass );
     }

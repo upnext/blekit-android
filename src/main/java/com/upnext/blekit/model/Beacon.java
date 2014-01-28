@@ -61,7 +61,7 @@ public class Beacon {
     private static final Pattern UID_PATTERN = Pattern.compile( UID_REGEXP );
 
     /**
-     * Beacon identifier, it has to match the regular epression {@link #UID_REGEXP}
+     * Beacon identifier, which must match the regular epression {@link #UID_REGEXP}
      */
     public String id;
 

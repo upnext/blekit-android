@@ -65,7 +65,7 @@ public class Action {
     public String id;
 
     /**
-     * Action type, based on this value an {@link com.upnext.blekit.actions.BLEAction} will be chosen.
+     * Action type, based on this value a {@link com.upnext.blekit.actions.BLEAction} will be chosen.
      */
     public String type;
 

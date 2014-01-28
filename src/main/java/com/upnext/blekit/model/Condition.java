@@ -70,7 +70,7 @@ public class Condition {
     public long id;
 
     /**
-     * Condition type, based on this value an {@link com.upnext.blekit.conditions.BLECondition} will be chosen.
+     * Condition type, based on this value a {@link com.upnext.blekit.conditions.BLECondition} will be chosen.
      */
     public String type;
 

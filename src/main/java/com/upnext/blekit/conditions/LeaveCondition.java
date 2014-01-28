@@ -62,10 +62,10 @@ public class LeaveCondition extends OccurenceCondition {
 
 
     /**
-     * Returns <code>true</code> only if beaocn event equals {@link com.upnext.blekit.BeaconEvent#REGION_LEAVE}
+     * Returns <code>true</code> only if beacon event equals {@link com.upnext.blekit.BeaconEvent#REGION_LEAVE}
      *
      * @param beaconEvent event
-     * @return <code>true</code> only if beaocn event equals {@link com.upnext.blekit.BeaconEvent#REGION_LEAVE}
+     * @return <code>true</code> only if beacon event equals {@link com.upnext.blekit.BeaconEvent#REGION_LEAVE}
      */
     @Override
     public boolean isValidForEvent(BeaconEvent beaconEvent) {

@@ -66,7 +66,7 @@ public class FoursquareCheckinAction extends BLEAction<FoursquareCheckinActionPa
      * {@inheritDoc}
      */
     @Override
-    public void perfromInBackground(Context context) {
+    public void performInBackground(Context context) {
         displayNotification( context, parameters.notification_title, parameters.notification_message, TYPE, R.drawable.ic_notification, NOTIFICATION_ID );
     }
 

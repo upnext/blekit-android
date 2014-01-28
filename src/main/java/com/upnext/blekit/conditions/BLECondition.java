@@ -32,6 +32,7 @@ import com.upnext.blekit.model.Beacon;
 import com.upnext.blekit.model.Trigger;
 import com.upnext.blekit.model.Zone;
 import com.upnext.blekit.util.ExpressionEvaluator;
+import com.upnext.blekit.util.L;
 
 import java.util.Map;
 
@@ -63,7 +64,7 @@ public abstract class BLECondition<T> {
     public abstract String getType();
 
     /**
-     * Sets parametrs for this condition.
+     * Sets parameters for this condition.
      *
      * @param parameters parameters instance
      */
@@ -74,7 +75,6 @@ public abstract class BLECondition<T> {
     /**
      * Evaluates event.
      * If {@link com.upnext.blekit.conditions.BLECondition#expression} is not <code>null</code>, then it will be evaluated.
-     * //TODO link to page explaining expressions
      *
      * If {@link com.upnext.blekit.conditions.BLECondition#expression} is <code>null</code>, then regular check will take place - {@link #evaluate()} will be called.
      *

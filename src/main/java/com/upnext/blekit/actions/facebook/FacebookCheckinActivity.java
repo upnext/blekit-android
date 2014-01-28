@@ -42,7 +42,7 @@ import com.upnext.blekit.util.L;
 import java.util.Arrays;
 
 /**
- * Helper Activity for logging into Facebook.
+ * Helper Activity for logging in to Facebook.
  *
  * @author Roman Wozniak (roman@up-next.com)
  */

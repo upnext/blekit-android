@@ -92,10 +92,10 @@ public class FacebookCheckinAction extends BLEAction<FacebookCheckinActionParams
      * Unsuccessful check-in is consumed silently (user not logged-in or same check-in message).
      *
      * @param context Android Context, passed from the calling entity
-     * @see com.upnext.blekit.actions.BLEAction#perfromInBackground(android.content.Context)
+     * @see com.upnext.blekit.actions.BLEAction#performInBackground(android.content.Context)
      */
     @Override
-    public void perfromInBackground(Context context) {
+    public void performInBackground(Context context) {
         L.d(".");
         if( applicationId==null ) {
             throw new IllegalStateException( "No application_id is set. Use FacebookCheckinAction.setApplicationId(\"APP_ID\") first." );

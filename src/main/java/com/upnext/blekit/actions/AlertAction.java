@@ -71,7 +71,7 @@ public class AlertAction extends BLEAction<AlertActionParams> {
      * @param context Android Context, passed from the calling entity
      */
     @Override
-    public void perfromInBackground( Context context ) {
+    public void performInBackground(Context context) {
         displayNotification(context);
     }
 

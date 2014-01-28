@@ -85,7 +85,7 @@ public class BeaconsDB extends SQLiteOpenHelper {
 
 
     /**
-     * Adds an event do the events database
+     * Adds an event to the events database
      *
      * @param event beacon event
      * @param beaconId beacon identifier

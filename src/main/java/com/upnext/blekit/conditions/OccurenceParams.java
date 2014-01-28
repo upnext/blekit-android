@@ -37,11 +37,18 @@ public class OccurenceParams {
     /**
      * Number of occurences in given unit of time.
      */
-    public int occurence;
+    public Integer occurence;
 
     /**
      * Occurence unit, default value is {@link com.upnext.blekit.EventOccurenceUnit#TOTAL}
      */
     public EventOccurenceUnit occurence_unit;
 
+    @Override
+    public String toString() {
+        return "OccurenceParams{" +
+                "occurence=" + occurence +
+                ", occurence_unit=" + occurence_unit +
+                '}';
+    }
 }
