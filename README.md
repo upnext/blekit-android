@@ -1,6 +1,6 @@
 # Android BLEKit Library
 
-An Android library for BLEKit developers to ease interaction with Beacons.
+An Android library for BLEKit developers to ease interaction with Beacons. For a general, non-android specific BLEKit overview please consult the [BLEKit project](https://github.com/upnext/blekit).
 
 ---
 ## What does this library do?
