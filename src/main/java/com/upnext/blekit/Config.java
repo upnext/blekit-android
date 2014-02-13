@@ -23,48 +23,31 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package com.upnext.blekit.util;
-
-import android.util.Log;
+package com.upnext.blekit;
 
 /**
- * Helper class for logging
+ * Contains configuration constants used across library.
  *
  * @author Roman Wozniak (roman@up-next.com)
  */
-public class L {
+public final class Config {
 
     /**
-     * Set to true if you want to see debug messages associated with this library
+     * BLE scans configuration.
      */
-    public static final boolean DEBUG_ENABLED = false;
+    protected static final long FOREGROUND_SCAN_DURATION_MILLIS = 30000;
+    protected static final long FOREGROUND_PAUSE_DURATION_MILLIS = 100;
+    protected static final long BACKGROUND_SCAN_DURATION_MILLIS = 30000;
+    protected static final long BACKGROUND_PAUSE_DURATION_MILLIS = 100;
 
-    private static final String APP_NAME = "BLEKIT";
+    /**
+     * Watchdog checks every this amount of seconds if service is running
+     */
+    protected static final int HEALTHCHECK_REPEAT_SECONDS = 10;
 
-    public static void d( String msg ) {
-        debug(  msg );
-    }
-
-    public static void d( Object obj ) {
-        if( obj != null )
-            debug( obj.toString() );
-    }
-
-    public static void e( String msg ) {
-        Log.e(APP_NAME, msg);
-    }
-
-    public static void e( String msg, Exception e ) {
-        Log.e( APP_NAME, msg, e );
-    }
-
-    private static void debug( String msg ) {
-        if( DEBUG_ENABLED ) {
-            StackTraceElement[] els = Thread.currentThread().getStackTrace();
-            String className = els[4].getClassName();
-            className = className.substring( className.lastIndexOf( "." )+1 );
-            Log.d( APP_NAME, "[" + className + "." + els[4].getMethodName() + "] " + msg );
-        }
-    }
+    /**
+     * After first LEAVE envent if no ENTER is seen in this amount of time, a proper LEAVE will be sent.
+     */
+    protected static final long LEAVE_MSG_DELAY_MILLIS = 15000;
 
 }

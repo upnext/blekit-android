@@ -63,6 +63,7 @@ public enum Proximity {
         if( beaconEvent==null ) return UNKNOWN;
 
         switch (beaconEvent) {
+            case REGION_ENTER: return FAR;
             case CAME_FAR: return FAR;
             case CAME_NEAR: return NEAR;
             case CAME_IMMEDIATE: return IMMEDIATE;

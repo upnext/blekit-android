@@ -23,48 +23,28 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package com.upnext.blekit.util;
+package com.upnext.blekit;
 
-import android.util.Log;
+import android.app.IntentService;
+import android.content.Intent;
+
+import com.upnext.blekit.util.L;
 
 /**
- * Helper class for logging
+ * Service for processing intent in destination app process.
+ * It is called by BLEKit service when a beacon event is meant to be sent to target application.
  *
  * @author Roman Wozniak (roman@up-next.com)
  */
-public class L {
+public class BLEKitIntentProcessor extends IntentService {
 
-    /**
-     * Set to true if you want to see debug messages associated with this library
-     */
-    public static final boolean DEBUG_ENABLED = false;
-
-    private static final String APP_NAME = "BLEKIT";
-
-    public static void d( String msg ) {
-        debug(  msg );
+    public BLEKitIntentProcessor() {
+        super("BLEKitIntentProcessor");
     }
 
-    public static void d( Object obj ) {
-        if( obj != null )
-            debug( obj.toString() );
+    @Override
+    protected void onHandleIntent(Intent intent) {
+        L.d( getPackageName() );
+        BLEKit.processServiceEvent(intent, this);
     }
-
-    public static void e( String msg ) {
-        Log.e(APP_NAME, msg);
-    }
-
-    public static void e( String msg, Exception e ) {
-        Log.e( APP_NAME, msg, e );
-    }
-
-    private static void debug( String msg ) {
-        if( DEBUG_ENABLED ) {
-            StackTraceElement[] els = Thread.currentThread().getStackTrace();
-            String className = els[4].getClassName();
-            className = className.substring( className.lastIndexOf( "." )+1 );
-            Log.d( APP_NAME, "[" + className + "." + els[4].getMethodName() + "] " + msg );
-        }
-    }
-
 }

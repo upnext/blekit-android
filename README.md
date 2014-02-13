@@ -28,9 +28,10 @@ The library requires the following permissions in order to function properly:
 * `android.permission.INTERNET` - required to fetch configuration from a given URL
 * `android.permission.BLUETOOTH` - required to perfom Bluetooth LE scans
 * `android.permission.BLUETOOTH_ADMIN` - required to check if Bluetooth is turned on
+* `android.permission.RECEIVE_BOOT_COMPLETED` - required to respawn the BLEKit service on device reboot
 
 ###Android Studio/Gradle
-* Download the latest binary version [AAR file](htt://link.to.aar) 
+* Download the latest binary version [AAR file](https://github.com/upnext/blekit-android/releases/download/v0.5.0/AndroidBLEKitLibrary-0.5.0.aar)
 * Create a /libs directory inside your project and copy the AAR file there.
 * Edit your build.gradle file, and add a "flatDir" entry to your repositories:
 
@@ -82,7 +83,6 @@ The following is a more advanced example that makes use of extra features provid
 BLEKit.create(this)
       .setJsonUrl("http://my.server.url/config.json")
       .setTargetActivityForNotifications(DashboardAcivity.class)
-      .setScanPeriods(new BLEKitScanPeriods(1100, 2000, 1100, 10000))
       .setEventListener(this)
       .setZoneUpdateListener(this)
       .setActionListener(this)
@@ -99,7 +99,12 @@ BLEKit.create(this)
 This library is dependant on [Radius Networks's Android IBeacon Library](https://github.com/RadiusNetworks/android-ibeacon-service	).
 
 ## Problems
-Describe problems with Android BLE RSSI.
+Android support for BLE is not perfect. When listening for BLE devices (eg. iBeacon) we are constantly getting RSSI values of the signal.
+Unfortunately even when the phone does not move and neither does the beacon, received values fluctuate a lot which distorts proximity approximations.
+The thing is even worse when the phone is being rotated around itself (even when not changing distance from the beacon).
+Moreover different phones (Nexus 5, SGS4) present different RSSI values when in the same distance from the beacon.
+
+Because of those issues there is an apprximation made in the library - proximity is an average value of 3 most recently received.
 
 ##License 
 

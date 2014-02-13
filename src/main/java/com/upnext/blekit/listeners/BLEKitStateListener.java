@@ -25,6 +25,8 @@
  */
 package com.upnext.blekit.listeners;
 
+import com.upnext.blekit.Proximity;
+
 /**
  * Listener for BLEKit states - start and stop.
  *
@@ -42,4 +44,11 @@ public interface BLEKitStateListener {
      */
     void onBLEKitStopped();
 
+    /**
+     * Called after connecting to BLEKit service and getting current state of beacons
+     *
+     * @param beaconId beacon identifier
+     * @param proximity beacon proximity
+     */
+    void onCurrentBeaconProximityReceived( String beaconId, Proximity proximity );
 }

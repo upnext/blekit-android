@@ -5,6 +5,7 @@
     android:versionName="0.5.0" >
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true">
@@ -12,9 +13,11 @@
         <service
             android:name="com.upnext.blekit.BLEKitService"
             android:enabled="true"
-            android:exported="true"
-            android:isolatedProcess="false"
-            android:label="blekitService" />
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.upnext.blekit.BLEKitService"/>
+            </intent-filter>
+        </service>
 
         <receiver
             android:name="com.upnext.blekit.receiver.LoggingReceiver"
@@ -22,6 +25,19 @@
             android:exported="true" >
             <intent-filter android:priority="1" >
                 <action android:name="com.upnext.blekit.RECEIVER"/>
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:enabled="true"
+            android:exported="true"
+            android:name=".BLEKitIntentProcessor"/>
+
+        <receiver android:name=".StartupReceiver"
+            android:enabled="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED" >
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 

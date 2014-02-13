@@ -69,7 +69,17 @@ public enum BeaconEvent {
      * @return beacon event
      */
     public static BeaconEvent fromIBeaconProximity(IBeacon iBeacon) {
-        switch (iBeacon.getProximity()) {
+        return fromIBeaconProximity(iBeacon.getProximity());
+    }
+
+    /**
+     * Matches IBeacon proximity to BeaconEvent proximity change
+     *
+     * @param proximity proximity
+     * @return beacon event
+     */
+    public static BeaconEvent fromIBeaconProximity(int proximity) {
+        switch (proximity) {
             case IBeacon.PROXIMITY_IMMEDIATE:
                 return CAME_IMMEDIATE;
 

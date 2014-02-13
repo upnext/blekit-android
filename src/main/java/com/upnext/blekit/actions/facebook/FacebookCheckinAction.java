@@ -160,7 +160,11 @@ public class FacebookCheckinAction extends BLEAction<FacebookCheckinActionParams
 
     protected boolean tryChekinInBackgroud(Context context) {
         Session session = Session.getActiveSession();
-        if ( session == null ) {
+        if( session==null ) {
+            session = Session.openActiveSessionFromCache(context);
+        }
+
+        if ( session==null ) {
             L.d("session is null");
             return false;
         }

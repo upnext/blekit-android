@@ -23,48 +23,26 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package com.upnext.blekit.util;
+package com.upnext.blekit;
 
-import android.util.Log;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+
+import com.upnext.blekit.util.L;
 
 /**
- * Helper class for logging
+ * Receives a <code>android.intent.action.BOOT_COMPLETED</code> intent upon device boot and starts the service.
  *
  * @author Roman Wozniak (roman@up-next.com)
  */
-public class L {
+public class StartupReceiver extends BroadcastReceiver {
 
-    /**
-     * Set to true if you want to see debug messages associated with this library
-     */
-    public static final boolean DEBUG_ENABLED = false;
 
-    private static final String APP_NAME = "BLEKIT";
-
-    public static void d( String msg ) {
-        debug(  msg );
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        L.d(".");
+        Intent i = new Intent( BLEKitService.ACTION );
+        context.startService(i);
     }
-
-    public static void d( Object obj ) {
-        if( obj != null )
-            debug( obj.toString() );
-    }
-
-    public static void e( String msg ) {
-        Log.e(APP_NAME, msg);
-    }
-
-    public static void e( String msg, Exception e ) {
-        Log.e( APP_NAME, msg, e );
-    }
-
-    private static void debug( String msg ) {
-        if( DEBUG_ENABLED ) {
-            StackTraceElement[] els = Thread.currentThread().getStackTrace();
-            String className = els[4].getClassName();
-            className = className.substring( className.lastIndexOf( "." )+1 );
-            Log.d( APP_NAME, "[" + className + "." + els[4].getMethodName() + "] " + msg );
-        }
-    }
-
 }

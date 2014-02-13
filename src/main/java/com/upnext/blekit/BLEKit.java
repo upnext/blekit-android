@@ -30,31 +30,38 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.bluetooth.BluetoothManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.upnext.blekit.actions.BLEAction;
 import com.upnext.blekit.conditions.BLECondition;
+import com.upnext.blekit.conditions.OccurenceCondition;
 import com.upnext.blekit.listeners.BLEKitStateListener;
 import com.upnext.blekit.listeners.BeaconEventListener;
 import com.upnext.blekit.listeners.ZoneUpdateListener;
+import com.upnext.blekit.model.Beacon;
+import com.upnext.blekit.model.Condition;
+import com.upnext.blekit.model.CurrentBeaconProximity;
+import com.upnext.blekit.model.Trigger;
+import com.upnext.blekit.model.Zone;
+import com.upnext.blekit.util.BeaconPreferences;
+import com.upnext.blekit.util.BeaconsDB;
+import com.upnext.blekit.util.JsonParser;
 import com.upnext.blekit.util.L;
 import com.upnext.blekit.util.http.HttpClient;
 import com.upnext.blekit.util.http.Response;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Basic class used for BLEKit lifecycle management and configuration.
@@ -75,9 +82,10 @@ import java.net.URL;
  * BLEKit
  * .create(this)
  * .setJsonUrl("http://your.server.com/zone.json")
- * .setScanPeriods(new BLEKitScanPeriods(1100, 1000, 1100, 15000))
  * .addAction(new CustomAction())
  * .addCondition(new CustomCondition())
+ * .removeActionByType(FacebookCheckinAction.TYPE)
+ * .setStateListener(this)
  * .start(this);
  * }
  * </pre>
@@ -88,7 +96,6 @@ import java.net.URL;
  *
  * @see com.upnext.blekit.actions.BLEAction
  * @see com.upnext.blekit.conditions.BLECondition
- * @see com.upnext.blekit.BLEKitScanPeriods
  */
 public class BLEKit {
 
@@ -96,23 +103,37 @@ public class BLEKit {
     private static ConditionsFactory mConditionsFactory;
     private static ActionsFactory mActionsFactory;
 
-    private String jsonUrl;
-    private String jsonContent;
-    private BLEKitScanPeriods scanPeriods = new BLEKitScanPeriods(30000, 100, 30000, 100);
+    private static String jsonUrl;
+    private static String jsonContent;
 
-    private Messenger mBLEKitService = null;
-    private boolean mBound;
-    private BackgroundMode mBackgroundMode = new BackgroundMode(null, false);
+    private static BackgroundMode mBackgroundMode = new BackgroundMode(null, true);
+    private static BeaconEventListener mBeaconEventListener;
 
+    private static ZoneUpdateListener mZoneUpdateListener;
+
+    private static BLEKitStateListener mStateListener;
+    private static Map<String, Proximity> mCurrentBeaconsStates = new HashMap<String, Proximity>();
+    private static JsonParser jsonParser = new JsonParser();
+
+    private static Intent mEventToProcess;
+    private static Zone mCurrentZone = null;
+
+    private BeaconsDB beaconsDB;
     private Class targetActivityForNotifications;
+    private boolean mBound;
+    private Context mContext;
 
-    private BeaconEventListener mBeaconEventListener;
-    private ZoneUpdateListener mZoneUpdateListener;
-    private BLEKitStateListener mStateListener;
 
-    private boolean mActionProcessingDisabled = false;
+    private BLEKit(Context context) {
+        mContext = context;
+        String zoneJson = BeaconPreferences.getLastZoneJson(context);
+        if( zoneJson!=null ) {
+            mCurrentZone = jsonParser.parse(zoneJson);
+        }
 
-    private BLEKit() {
+        beaconsDB = new BeaconsDB(context);
+        mConditionsFactory = new ConditionsFactory();
+        mActionsFactory = new ActionsFactory();
     }
 
     /**
@@ -127,15 +148,7 @@ public class BLEKit {
     public static BLEKit create( Context context ) {
         L.d( "create" );
 
-        //stop service if it is running
-        if( _bleKit !=null && _bleKit.mBound ) {
-            stop(context);
-        }
-
-        _bleKit = new BLEKit();
-
-        mConditionsFactory = new ConditionsFactory();
-        mActionsFactory = new ActionsFactory();
+        _bleKit = new BLEKit(context);
 
         return _bleKit;
     }
@@ -146,9 +159,10 @@ public class BLEKit {
      * Fetches JSON configuration from given URL if provided.
      *
      * @param context context (either from activity or service)
-     * @throws IllegalArgumentException thrown if configuration JSON was not provided (jsonUrl or jsonContent).
+     * @throws IllegalArgumentException thrown if configuration JSON was not provided (jsonUrl or jsonContent) or create() was not called before.
      */
     public void start( Context context ) throws IllegalArgumentException {
+        checkInitialized();
         L.d( "start" );
 
         if( jsonContent==null && jsonUrl==null ) {
@@ -157,9 +171,20 @@ public class BLEKit {
 
         if( jsonUrl!=null ) {
             fetchJson();
+        } else {
+            _bleKit.updateZone(jsonContent);
         }
 
-        context.bindService(new Intent(context, BLEKitService.class), mBLEKitServiceConnection, Context.BIND_AUTO_CREATE);
+        mBound = true;
+
+        if( mStateListener!=null ) {
+            mStateListener.onBLEKitStarted();
+        }
+
+        if( mEventToProcess!=null ) {
+            processServiceEvent(mEventToProcess, context);
+        }
+
     }
 
     /**
@@ -168,18 +193,18 @@ public class BLEKit {
      *
      * If BLEKit is already started, then it fetches the JSON from given url and reloads the configuration.
      *
-     * @param jsonUrl url pointing to JSON configuration
+     * @param url url pointing to JSON configuration
      * @return BLEKit instance
      * @throws IllegalStateException thrown if BLEKit was not initialized.
      * @throws java.net.MalformedURLException thrown if given url is malformed.
      */
-    public static BLEKit setJsonUrl( String jsonUrl ) throws IllegalStateException, MalformedURLException {
+    public static BLEKit setJsonUrl( String url ) throws IllegalStateException, MalformedURLException {
         checkInitialized();
 
         //validate URL
-        new URL(jsonUrl);
+        new URL(url);
 
-        _bleKit.jsonUrl = jsonUrl;
+        jsonUrl = url;
 
         if( _bleKit.mBound ) {
             _bleKit.fetchJson();
@@ -194,13 +219,14 @@ public class BLEKit {
      *
      * If BLEKit is already started, then it fetches the JSON from given url and reloads the configuration.
      *
-     * @param jsonContent String containing JSON configuration
+     * @param content String containing JSON configuration
      * @return BLEKit instance
      * @throws IllegalStateException thrown if BLEKit was not initialized
      */
-    public static BLEKit setJsonContent( String jsonContent ) throws IllegalStateException {
+    public static BLEKit setJsonContent( String content ) throws IllegalStateException {
         checkInitialized();
-        _bleKit.jsonContent = jsonContent;
+
+        jsonContent = content;
 
         if( _bleKit.mBound ) {
             _bleKit.updateZone(jsonContent);
@@ -212,15 +238,20 @@ public class BLEKit {
     /**
      * If a JSON url was provided previously (and was valid), then it is fetched again and all actions are triggered.
      *
+     * @param ctx context
      * @throws IllegalStateException thrown if BLEKit was not initialized
      */
-    public static void reloadJson() throws IllegalStateException {
-        checkInitialized();
+    public static void reloadJson( Context ctx ) throws IllegalStateException {
+        if( _bleKit==null ) {
+            restartBlekit(ctx);
+            return;
+        }
 
-        if(_bleKit.jsonUrl==null) return;
+
+        if(jsonUrl==null) return;
 
         try {
-            new URL(_bleKit.jsonUrl);
+            new URL(jsonUrl);
         } catch (Exception e) {
             //if url is malformed, cosume error silently
             return;
@@ -228,19 +259,11 @@ public class BLEKit {
 
         if( _bleKit.mBound ) {
             _bleKit.fetchJson();
+        } else {
+            fetchJsonLocal();
         }
     }
 
-    /**
-     * Can be used to force process all triggers fro given action type.
-     *
-     * @param actionType type of action ({@link com.upnext.blekit.actions.BLEAction#getType()}
-     * @throws IllegalStateException thrown if BLEKit was not initialized
-     */
-    public static void processEventsForActionType( String actionType ) throws IllegalStateException {
-        checkInitialized();
-        _bleKit.sendProcessEventsForActionType(actionType);
-    }
 
     /**
      * Stops BLEKit service if it is running.
@@ -249,12 +272,16 @@ public class BLEKit {
      */
     public static void stop( Context context ) {
         L.d("stop");
+        mCurrentBeaconsStates = new HashMap<String, Proximity>();
+
         if( _bleKit!=null && _bleKit.mBound ) {
-            context.unbindService(_bleKit.mBLEKitServiceConnection);
+
+            _bleKit.sendStop();
+
             _bleKit.mBound = false;
 
-            if( _bleKit.mStateListener!=null ) {
-                _bleKit.mStateListener.onBLEKitStopped();
+            if( mStateListener!=null ) {
+                mStateListener.onBLEKitStopped();
             }
         }
     }
@@ -287,23 +314,6 @@ public class BLEKit {
         return _bleKit;
     }
 
-    /**
-     * Set scan periods for foreground and background states.
-     * BLEKit should be initialized first.
-     *
-     * @param scanPeriods scan periods
-     * @return BLEKit instance
-     * @throws IllegalStateException thrown if BLEKit was not initialized.
-     */
-    public static BLEKit setScanPeriods( BLEKitScanPeriods scanPeriods ) throws IllegalStateException {
-        checkInitialized();
-
-        _bleKit.scanPeriods = scanPeriods;
-        if( _bleKit.mBound ) {
-            _bleKit.updateScanPeriods();
-        }
-        return _bleKit;
-    }
 
     /**
      * Set background mode.
@@ -316,15 +326,14 @@ public class BLEKit {
      */
     public static void setBackgroundMode( boolean background, Activity activity ) throws IllegalStateException {
         L.d("setBackgroundMode " + background);
-        checkInitialized();
 
         if( !background && activity==null ) {
             throw new IllegalArgumentException( "Activity is null for foreground" );
         }
 
-        _bleKit.mBackgroundMode = new BackgroundMode( activity, background );
-        if( _bleKit.mBound ) {
-            _bleKit.updateBackgroundMode();
+        mBackgroundMode = new BackgroundMode( activity, background );
+        if( _bleKit!=null && _bleKit.mBound ) {
+            _bleKit.sendSetBackgroundMode(mBackgroundMode);
         }
     }
 
@@ -337,60 +346,32 @@ public class BLEKit {
      * @throws IllegalStateException thrown if BLEKit was not initialized.
      */
     public static BLEKit setEventListener( BeaconEventListener listener ) throws IllegalStateException {
-        checkInitialized();
-
-        _bleKit.mBeaconEventListener = listener;
-        if( _bleKit.mBound ) {
-            _bleKit.updateEventListener(listener);
-        }
+        mBeaconEventListener = listener;
         return _bleKit;
     }
 
     /**
-     * Sets listener for configuration (zone) changes - eg. when a new configuration is fetched (after BLEKit start or after manual call to {@link #reloadJson()})
+     * Sets listener for configuration (zone) changes - eg. when a new configuration is fetched (after BLEKit start or after manual call to {@link #reloadJson(android.content.Context)})
      *
      * @param listener zone update listener
      * @return BLEKit instance
      * @throws IllegalStateException thrown if BLEKit was not initialized.
      */
     public static BLEKit setZoneUpdateListener( ZoneUpdateListener listener ) throws IllegalStateException {
-        checkInitialized();
-
-        _bleKit.mZoneUpdateListener = listener;
-        if( _bleKit.mBound ) {
-            _bleKit.updateZoneListener(listener);
-        }
+        mZoneUpdateListener = listener;
         return _bleKit;
     }
 
-    /**
-     * Provides the functionality to temporarily disable action processing.
-     * By default action processing is enabled.
-     *
-     * @param disableActionProcessing if <code>true</code>, action processing will be disabled; if <code>false</code>, action processing will be enabled
-     * @return BLEKit instance
-     * @throws IllegalStateException thrown if BLEKit was not initialized.
-     */
-    public static BLEKit disableActionProcessing( boolean disableActionProcessing ) throws IllegalStateException {
-        checkInitialized();
-
-        _bleKit.mActionProcessingDisabled = disableActionProcessing;
-        if( _bleKit.mBound ) {
-            _bleKit.updateActionProcessing(disableActionProcessing);
-        }
-        return _bleKit;
-    }
 
     /**
-     * Sets listener for BLEKit states - when in starts and stops.
+     * Sets listener for BLEKit states - when in starts, stops and gets current beacon proximities after start.
      *
      * @param listener state listener
      * @return BLEKit instance
      * @throws IllegalStateException thrown if BLEKit was not initialized.
      */
     public static BLEKit setStateListener( BLEKitStateListener listener ) throws IllegalStateException {
-        checkInitialized();
-        _bleKit.mStateListener = listener;
+        mStateListener = listener;
         return _bleKit;
     }
 
@@ -488,6 +469,7 @@ public class BLEKit {
     public static BLEKit setTargetActivityForNotifications( Class cls ) throws IllegalStateException {
         checkInitialized();
         _bleKit.targetActivityForNotifications = cls;
+        BeaconPreferences.setTargetActivityForNotifications(_bleKit.mContext, cls.getName());
         return _bleKit;
     }
 
@@ -535,6 +517,24 @@ public class BLEKit {
         return _bleKit!=null && _bleKit.mBound;
     }
 
+    /**
+     * Returns a map of monitored beacons with their current proximity value.
+     *
+     * @return map of beacons
+     */
+    public static Map<String, Proximity> getCurrentBeaconStates() {
+        return mCurrentBeaconsStates;
+    }
+
+    /**
+     * Returns current zone configuration.
+     *
+     * @return current zone
+     */
+    public static Zone getZone() {
+        return mCurrentZone;
+    }
+
 
 
 
@@ -542,9 +542,34 @@ public class BLEKit {
      * Starts an async task to fetch JSON.
      */
     private void fetchJson() {
+        L.d(".");
         FetchJsonAsyncTask task = new FetchJsonAsyncTask();
         task.execute( jsonUrl );
     }
+
+    private static void fetchJsonLocal() {
+        L.d(".");
+        AsyncTask<String, Void, JsonNode> task = new AsyncTask<String, Void, JsonNode>() {
+
+            @Override
+            protected JsonNode doInBackground(String... params) {
+                L.d( "fetching from " + params[0] );
+                HttpClient client = new HttpClient( params[0] );
+                Response<JsonNode> response = client.get( JsonNode.class, null );
+                return response.getBody();
+            }
+
+            @Override
+            protected void onPostExecute(JsonNode s) {
+                L.d( "fetched " + s );
+                if( s!=null ) {
+                    mCurrentZone = jsonParser.parse(s+"");
+                }
+            }
+        };
+        task.execute( jsonUrl );
+    }
+
 
     private static void showErrorDialog(String msg, Activity activity, boolean bleUnavailable) {
         ErrorDialogFragment dlg = new ErrorDialogFragment(msg, bleUnavailable);
@@ -588,18 +613,6 @@ public class BLEKit {
     }
 
 
-    private void updateBackgroundMode() {
-        if( mBackgroundMode==null ) return;
-        checkRunning();
-        send( BLEKitService.MSG_SET_BACKGROUND_MODE, mBackgroundMode );
-    }
-
-    private void updateScanPeriods() {
-        if( scanPeriods==null ) return;
-        checkRunning();
-        send( BLEKitService.MSG_UPDATE_SCAN_PERIODS, scanPeriods );
-    }
-
     private void checkStarted() {
         if( mBound ) {
             throw new IllegalStateException( "BLEKit is already started, stop it first" );
@@ -612,67 +625,79 @@ public class BLEKit {
         }
     }
 
-    private void checkRunning() {
-        if( mBLEKitService==null ) {
-            throw new IllegalStateException( "BLEKit service is not running. Start it first." );
-        }
-    }
+    private void updateZone(String zoneJson) {
+        if( zoneJson==null ) return;
 
-    private void updateZone( String zoneJSON ) {
-        checkRunning();
-        send( BLEKitService.MSG_UPDATE_ZONE, zoneJSON );
-    }
+        final Zone newZone = jsonParser.parse(zoneJson);
+        BeaconPreferences.setLastZoneJson(mContext, zoneJson);
+        L.d( "updateZone: " + newZone );
 
-    private void sendProcessEventsForActionType(String actionType) {
-        checkRunning();
-        send( BLEKitService.MSG_PROCESS_EVENTS_FOR_ACTION_TYPE, actionType );
-    }
+        if( mCurrentZone!=null ) {
 
-    private void updateEventListener(BeaconEventListener listener) {
-        checkRunning();
-        send( BLEKitService.MSG_SET_BEACON_EVENT_LISTENER, listener );
-    }
-
-    private void updateZoneListener(ZoneUpdateListener listener) {
-        checkRunning();
-        send( BLEKitService.MSG_SET_ZONE_LISTENER, listener );
-    }
-
-    private void updateActionProcessing(boolean disabled) {
-        checkRunning();
-        send( BLEKitService.MSG_DISABLE_ACTION_PROCESSING, Boolean.valueOf(disabled) );
-    }
-
-    private ServiceConnection mBLEKitServiceConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            L.d( "onServiceConnected" );
-            mBLEKitService = new Messenger(service);
-            mBound = true;
-
-            updateScanPeriods();
-            updateBackgroundMode();
-            updateEventListener(mBeaconEventListener);
-            updateZoneListener(mZoneUpdateListener);
-            updateActionProcessing(mActionProcessingDisabled);
-
-            if( jsonContent!=null )
-                updateZone( jsonContent );
-
-            if( mStateListener!=null ) {
-                mStateListener.onBLEKitStarted();
+            if( newZone!=null ) {
+                sendUpdateBeacons( newZone.beacons );
             }
+
+            mCurrentZone = newZone;
+
+        } else {
+
+            mCurrentZone = newZone;
+            sendStart( mCurrentZone.beacons );
+
         }
 
-        public void onServiceDisconnected(ComponentName className) {
-            L.d( "onServiceDisconnected" );
-            mBLEKitService = null;
-            mBound = false;
-
-            if( mStateListener!=null ) {
-                mStateListener.onBLEKitStopped();
-            }
+        if( mZoneUpdateListener!=null ) {
+            mZoneUpdateListener.onZoneUpdated(newZone);
         }
-    };
+    }
+
+    private void sendUpdateBeacons( List<Beacon> beacons ) {
+        Intent intent = getServiceIntent();
+        intent.putExtra(BLEKitService.Extra.EXTRA_COMMAND, BLEKitService.Extra.COMMAND_UPDATE_BEACONS);
+        intent.putStringArrayListExtra(BLEKitService.Extra.EXTRA_BEACONS_LIST, beaconsToIds(beacons));
+        sendCommandToService(intent);
+    }
+
+    private void sendStart( List<Beacon> beacons ) {
+        Intent intent = getServiceIntent();
+        intent.putExtra(BLEKitService.Extra.EXTRA_COMMAND, BLEKitService.Extra.COMMAND_START_SCAN);
+        intent.putExtra(BLEKitService.Extra.EXTRA_BACKGROUND_MODE, mBackgroundMode.inBackground);
+        intent.putStringArrayListExtra(BLEKitService.Extra.EXTRA_BEACONS_LIST, beaconsToIds(beacons));
+        sendCommandToService(intent);
+    }
+
+    private void sendSetBackgroundMode( BackgroundMode backgroundMode ) {
+        Intent intent = getServiceIntent();
+        intent.putExtra(BLEKitService.Extra.EXTRA_COMMAND, BLEKitService.Extra.COMMAND_SET_BACKGROUND_MODE);
+        intent.putExtra(BLEKitService.Extra.EXTRA_BACKGROUND_MODE, backgroundMode.inBackground);
+        sendCommandToService(intent);
+    }
+
+    private void sendStop() {
+        Intent intent = getServiceIntent();
+        intent.putExtra(BLEKitService.Extra.EXTRA_COMMAND, BLEKitService.Extra.COMMAND_STOP_SCAN);
+        sendCommandToService(intent);
+    }
+
+    private Intent getServiceIntent() {
+        return new Intent( BLEKitService.ACTION );
+    }
+
+    private void sendCommandToService(Intent intent) {
+        intent.putExtra(BLEKitService.Extra.EXTRA_CLIENT_APP_PACKAGE, mContext.getPackageName());
+        mContext.startService(intent);
+    }
+
+
+    private ArrayList<String> beaconsToIds( List<Beacon> beacons ) {
+        ArrayList<String> ids = new ArrayList<String>();
+        for( Beacon beacon : beacons ) {
+            ids.add(beacon.id.toLowerCase());
+        }
+        return ids;
+    }
+
 
     private class FetchJsonAsyncTask extends AsyncTask<String, Void, JsonNode> {
 
@@ -693,13 +718,163 @@ public class BLEKit {
         }
     }
 
-    private void send( int msgID, Object object ) {
-        Message msg = Message.obtain(null, msgID, object);
-        try {
-            mBLEKitService.send( msg );
-        } catch (RemoteException e) {
-            e.printStackTrace();
+
+
+    protected interface Extra {
+        public static final String EXTRA_BEACON_EVENT = "com.upnext.blekit.extra.BEACON_EVENT";
+        public static final String EXTRA_BEACON_ID = "com.upnext.blekit.extra.BEACON_ID";
+
+        public static final String EXTRA_CLIENT_ADD = "com.upnext.blekit.extra.CLIENT_ADD";
+        public static final String EXTRA_CLIENT_REMOVE = "com.upnext.blekit.extra.CLIENT_REMOVE";
+
+        public static final String EXTRA_CURRENT_BEACON_PROXIMITY = "com.upnext.blekit.extra.CURRENT_BEACON_PROXIMITY";
+    }
+
+    /**
+     * Processes intent sent by BLEKitService.
+     *
+     * @param intent intent containing data
+     * @param ctx context
+     */
+    protected static void processServiceEvent(Intent intent, Context ctx) {
+        L.d(".");
+
+        BLEKitClient clientAdd = intent.getParcelableExtra(Extra.EXTRA_CLIENT_ADD);
+        if( clientAdd!=null ) {
+            L.d(". add " + clientAdd.getPackageName() );
+            BeaconPreferences.addClient( ctx, clientAdd );
+            return;
         }
+
+        BLEKitClient clientRemove = intent.getParcelableExtra(Extra.EXTRA_CLIENT_REMOVE);
+        if( clientRemove!=null ) {
+            L.d(". remove " + clientRemove.getPackageName() );
+            BeaconPreferences.removeClient(ctx, clientRemove.getPackageName());
+            return;
+        }
+
+        CurrentBeaconProximity currentBeaconProximity = intent.getParcelableExtra(Extra.EXTRA_CURRENT_BEACON_PROXIMITY);
+        if( currentBeaconProximity!=null ) {
+            L.d(". update proximity");
+            mCurrentBeaconsStates.put( currentBeaconProximity.getBeaconId(), currentBeaconProximity.getProximity() );
+            if( mStateListener!=null ) {
+                mStateListener.onCurrentBeaconProximityReceived( currentBeaconProximity.getBeaconId(), currentBeaconProximity.getProximity() );
+            }
+            return;
+        }
+
+        //fresh start, we do not have instance - app brought from the dead
+        if( _bleKit==null ) {
+            L.d(". restart");
+            restartBlekit(ctx);
+            mEventToProcess = intent;
+            return;
+        }
+
+        String event = intent.getStringExtra(Extra.EXTRA_BEACON_EVENT);
+        if( event!=null ) {
+            L.d(". event " + event );
+            BeaconEvent beaconEvent = BeaconEvent.valueOf( event );
+            String beaconId = intent.getStringExtra(Extra.EXTRA_BEACON_ID);
+
+            mCurrentBeaconsStates.put( beaconId, Proximity.fromBeaconEvent(beaconEvent) );
+
+            for( Beacon beacon : getBeaconsFromZone(beaconId) ) {
+                _bleKit.processTriggersForBeacon( beacon, beaconEvent, ctx );
+            }
+        }
+
+        mEventToProcess = null;
+    }
+
+    private static void restartBlekit(Context context) {
+        Intent intnt = new Intent("com.upnext.blekit.service.RESTARTER");
+        intnt.setPackage(context.getPackageName());
+        if( context.getPackageManager().resolveService( intnt, 0 ) !=null ) {
+            context.startService(intnt);
+        }
+    }
+
+    private static List<Beacon> getBeaconsFromZone( String beaconId ) {
+        List<Beacon> beacons = new ArrayList<Beacon>();
+        if( mCurrentZone==null || mCurrentZone.beacons==null ) {
+            return beacons;
+        }
+        for( Beacon beacon : mCurrentZone.beacons ) {
+            if( beacon.id.equalsIgnoreCase(beaconId) ) {
+                beacons.add(beacon);
+            }
+        }
+        return beacons;
+    }
+
+    private void processTriggersForBeacon(Beacon beacon, BeaconEvent beaconEvent, Context ctx) {
+        L.d( "Processing for beacon '" + beacon.name + "' " + beaconEvent );
+
+        if( mBeaconEventListener!=null ) {
+            mBeaconEventListener.onEvent(beaconEvent, beacon);
+        }
+
+        final ConditionsFactory conditionsFactory = BLEKit.getConditionsFactory();
+        final ActionsFactory actionsFactory = BLEKit.getActionsFactory();
+
+        for(Trigger trigger : beacon.triggers) {
+            L.d( "Processing trigger '" + trigger.name + "'" );
+            boolean conditionsMet = allConditionsMet( trigger, conditionsFactory, beaconEvent, beacon, ctx );
+
+            if( !conditionsMet ) continue;
+
+            //all conditions met
+            performAction(actionsFactory, trigger, ctx);
+        }
+    }
+
+    private void performAction(final ActionsFactory actionsFactory, Trigger trigger, Context ctx) {
+        BLEAction bleAction = actionsFactory.get( trigger.action.type, trigger.action.parameters );
+        if( bleAction==null ) {
+            L.d("Did not find action implementation for type '" + trigger.action.type + "'");
+            return;
+        }
+
+        L.d("." + mBackgroundMode.inBackground);
+        bleAction.performAction(ctx, mBackgroundMode);
+    }
+
+    private boolean allConditionsMet(Trigger trigger, final ConditionsFactory conditionsFactory, BeaconEvent beaconEvent, Beacon beacon, Context ctx) {
+        boolean conditionsMet = true;
+        for (Condition condition : trigger.conditions) {
+
+            BLECondition bleCondition = conditionsFactory.get(condition.type, beaconEvent, condition.parameters, condition.expression, ctx);
+            if( bleCondition==null ) {
+                L.d( "Did not find condition implementation for type '" + condition.type + "' and event '" + beaconEvent + "'" );
+                conditionsMet = false;
+                break;
+            } else {
+
+                bleCondition.setZone(mCurrentZone);
+                bleCondition.setBeacon(beacon);
+                bleCondition.setTrigger(trigger);
+
+                increaseOccurence(bleCondition, beacon.id);
+            }
+
+            if( !bleCondition.conditionMet() ) {
+                L.d( "Condition not met: '" + condition.type + "'" );
+                conditionsMet = false;
+                break;
+            }
+        }
+        return conditionsMet;
+    }
+
+    private void increaseOccurence(BLECondition bleCondition, String beaconId) {
+        if( !(bleCondition instanceof OccurenceCondition) ) return;
+
+        OccurenceCondition condition = (OccurenceCondition) bleCondition;
+        beaconsDB.addBeaconEvent( condition.getBeaconEvent(), beaconId );
+
+        condition.setBeaconsDB(beaconsDB);
+        condition.setBeaconId(beaconId);
     }
 
 }

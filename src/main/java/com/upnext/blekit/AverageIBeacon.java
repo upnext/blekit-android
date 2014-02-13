@@ -42,8 +42,11 @@ public class AverageIBeacon extends IBeacon {
 
     private int prevProximity = PROXIMITY_UNKNOWN;
 
+    private long lastSeen;
+
     public AverageIBeacon(IBeacon otherIBeacon) {
         super(otherIBeacon);
+        lastSeen = System.currentTimeMillis();
         numSamples = 0;
         if( accuracy<0 ) accuracy=0d;
     }
@@ -86,5 +89,13 @@ public class AverageIBeacon extends IBeacon {
 
     public boolean proximityChanged() {
         return getProximity() != prevProximity;
+    }
+
+    public long getLastSeen() {
+        return lastSeen;
+    }
+
+    public void setLastSeen(long lastSeen) {
+        this.lastSeen = lastSeen;
     }
 }
