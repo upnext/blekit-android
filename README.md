@@ -31,7 +31,7 @@ The library requires the following permissions in order to function properly:
 * `android.permission.RECEIVE_BOOT_COMPLETED` - required to respawn the BLEKit service on device reboot
 
 ###Android Studio/Gradle
-* Download the latest binary version [AAR file](https://github.com/upnext/blekit-android/releases/download/v0.5.0/AndroidBLEKitLibrary-0.5.0.aar)
+* Download the latest binary version [AAR file](https://github.com/upnext/blekit-android/releases/download/v0.5.1/AndroidBLEKitLibrary-0.5.1.aar)
 * Create a /libs directory inside your project and copy the AAR file there.
 * Edit your build.gradle file, and add a "flatDir" entry to your repositories:
 
